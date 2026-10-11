@@ -6,26 +6,26 @@ module DataMemory (
     input  wire [31:0] write_data,
     output wire [31:0] read_data
 );
-    reg [31:0] RAM [0:63];
+    reg [7:0] mem [0:255]; // 256 bytes
 
-    // Initialize all RAM entries to zero to prevent 'xx' uninitialized states
     integer i;
     initial begin
-        for (i = 0; i < 64; i = i + 1)
-            RAM[i] = 32'h0000_0000;
+        for (i = 0; i < 256; i = i + 1)
+            mem[i] = 8'h00;
     end
 
-    // Memory Write (Synchronous with Byte Enable Masking)
+    wire [31:0] base_addr = {addr[31:2], 2'b00};
+
+    // Combinational Read
+    assign read_data = {mem[base_addr + 3], mem[base_addr + 2], mem[base_addr + 1], mem[base_addr]};
+
+    // Synchronous Byte-Selectable Write
     always @(posedge clk) begin
         if (mem_write) begin
-            if (byte_enable[0]) RAM[addr[31:2]][7:0]   <= write_data[7:0];
-            if (byte_enable[1]) RAM[addr[31:2]][15:8]  <= write_data[15:8];
-            if (byte_enable[2]) RAM[addr[31:2]][23:16] <= write_data[23:16];
-            if (byte_enable[3]) RAM[addr[31:2]][31:24] <= write_data[31:24];
+            if (byte_enable[0]) mem[base_addr + 0] <= write_data[7:0];
+            if (byte_enable[1]) mem[base_addr + 1] <= write_data[15:8];
+            if (byte_enable[2]) mem[base_addr + 2] <= write_data[23:16];
+            if (byte_enable[3]) mem[base_addr + 3] <= write_data[31:24];
         end
     end
-
-    // Memory Read (Combinational)
-    assign read_data = RAM[addr[31:2]];
-
 endmodule
